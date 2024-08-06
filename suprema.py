@@ -232,7 +232,7 @@ def analise_operacional():
     df_status_nihil = df_status_nihil[['Cliente', 'Veículo', 'Placas']]
 
     soma_pagamento = df_pgto_mes['Valor'].sum()
-    col1.metric('Receita mês:', f'{soma_pagamento:,.2f}')
+    col1.metric('Receita mês:', f'{soma_pagamento:,2f}')
     veiculos_confirmados = df_status_ok['Placas'].value_counts().sum()
     col2.metric('Pagamentos confirmados:', veiculos_confirmados)
     veiculos_pendentes = df_status_nihil['Placas'].value_counts().sum()
