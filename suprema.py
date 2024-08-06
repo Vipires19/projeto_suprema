@@ -80,8 +80,8 @@ def visualizar_veiculos():
     st.dataframe(df)
     veiculos_cadastrados = df['Placas'].value_counts().sum()
     st.session_state['veiculos_cadastrados'] = veiculos_cadastrados
-    clientes_cadastrados = df['Clientes'].unique().sum()
-    clientes_cadastrados
+    clientes_cadastrados = df['Cliente'].nunique()
+    st.session_state['clientes_cadastrados'] = clientes_cadastrados
 
 def pagamento_veiculos():
     df = st.session_state['veiculos']
@@ -189,20 +189,64 @@ def status_pagamento():
 
     col1, col2 = st.columns(2)
     df_status_ok = df_status[df_status['Status'] == 'Confirmado']
+    df_status_ok = df_status_ok[['Cliente', 'Veículo', 'Placas']]
+    st.session_state['df_status_ok'] = df_status_ok
     col1.header('**Pagamento Confirmado**')
-    col1.dataframe(df_status_ok[['Cliente', 'Veículo', 'Placas']])
+    col1.dataframe(df_status_ok)
 
     df_status_nihil = df[~df['Placas'].isin(df_mes['Placas'])]
     df_status_nihil = df_status_nihil[['Cliente', 'Veículo', 'Placas', 'Status']]
+    st.session_state['df_status_nihil'] = df_status_nihil
     col2.header('**Pagamento Pendente**')
     col2.dataframe(df_status_nihil[['Cliente', 'Veículo', 'Placas']])   
 
 def analise_operacional():
     veiculos_cadastrados = st.session_state['veiculos_cadastrados']
+    clientes_cadastrados = st.session_state['clientes_cadastrados']
+    df_pgto = st.session_state['df_pagamento']
+    df_status_nihil = st.session_state['df_status_nihil']
+    df_status_ok = st.session_state['df_status_ok']
+
+    forma_pagamento = df_pgto['Forma Pagamento'].value_counts().index[0]
+    tipo = df_pgto['Tipo'].value_counts().index[0]
+    receita = df_pgto['Valor'].sum()
+
+    col1,col2,col3,col4 = st.columns(4)
+    col1.metric('Veículos Cadastrados:', veiculos_cadastrados)
+    col2.metric('Clientes_cadastrados:', clientes_cadastrados)
+    col3.metric('Tipo de veículo com mais rastreadores', tipo)
+    col4.metric('Forma de pagamento mais utilizada', forma_pagamento)
+
+    ano = df_pgto['Ano'].value_counts().index
+    anos = col1.selectbox('Year', ano)
+    df_pgto_ano = df_pgto[df_pgto['Ano'] == anos]
+    
+    mes = df_pgto_ano['Mês'].value_counts().index
+    meses = col2.selectbox('month', mes)
+
+    df_pgto_mes = df_pgto_ano[df_pgto_ano['Mês'] == meses]
+    df_status = df_pgto_mes[['Cliente', 'Veículo', 'Placas', 'Status']]
+    df_status_ok = df_status[df_status['Status'] == 'Confirmado']
+    df_status_ok = df_status_ok[['Cliente', 'Veículo', 'Placas']]
+    df_status_nihil = df_pgto[~df_pgto['Placas'].isin(df_pgto_mes['Placas'])]
+    df_status_nihil = df_status_nihil[['Cliente', 'Veículo', 'Placas']]
+
+    soma_pagamento = df_pgto_mes['Valor'].sum()
+    col1.metric('Receita mês:', soma_pagamento)
+    veiculos_confirmados = df_status_ok['Placas'].value_counts().sum()
+    col2.metric('Pagamentos confirmados:', veiculos_confirmados)
+    veiculos_pendentes = df_status_nihil['Placas'].value_counts().sum()
+    col2.metric('Pagamentos pendentes:', veiculos_pendentes)
+    
 
 
 def pagina_principal():
     st.title('Suprema Sat 🌎')
+    #tab1,tab2,tab3 = st.tabs(['Análise', 'Clientes','Pagamentos'])
+    #with tab1:
+    #    st.header('**Análise geral**')
+    #    analise_operacional() 
+
     cadastrar_veiculos()
     visualizar_veiculos()
     
