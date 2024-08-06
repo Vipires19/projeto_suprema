@@ -37,9 +37,18 @@ def cadastrar_veiculos():
     nome = col1.text_input('Nome do Cliente', placeholder='Insira o nome do cliente')
     tipo_doc = col2.selectbox('Tipo de documento', ['RG','CPF'])
     if tipo_doc == 'RG':
-        doc = col3.text_input('Documento do cliente', placeholder='Ex: 00.000.000-0')
+        doc1 = col3.text_input('Documento do cliente', placeholder='Ex: 00')
+        doc2 = col4.text_input('1', placeholder='Ex: 000',label_visibility= 'hidden')
+        doc3 = col5.text_input('2', placeholder='Ex: 000',label_visibility= 'hidden')
+        doc4 = col6.text_input('3', placeholder='Ex: 0',label_visibility= 'hidden')
+        doc = f'{doc1}.{doc2}.{doc3}-{doc4}'
     if tipo_doc == 'CPF':
-        doc = col3.text_input('Documento do cliente', placeholder='Ex: 000.000.000-0')
+        doc1 = col3.text_input('Documento do cliente', placeholder='Ex: 000')
+        doc2 = col4.text_input('1', placeholder='Ex: 000',label_visibility= 'hidden')
+        doc3 = col5.text_input('2', placeholder='Ex: 000',label_visibility= 'hidden')
+        doc4 = col6.text_input('3', placeholder='Ex: 00',label_visibility= 'hidden')
+        doc = f'{doc1}.{doc2}.{doc3}-{doc4}'
+        
     adiciona_cliente = col1.button('Adicionar')
     placa = f'{placa_lt} - {placa_nb}'
     veiculo = {'Cliente' : nome,
@@ -69,59 +78,128 @@ def visualizar_veiculos():
     df = st.session_state['veiculos']
     
     st.dataframe(df)
+    veiculos_cadastrados = df['Placas'].value_counts().sum()
+    st.session_state['veiculos_cadastrados'] = veiculos_cadastrados
+    clientes_cadastrados = df['Clientes'].unique().sum()
+    clientes_cadastrados
 
 def pagamento_veiculos():
     df = st.session_state['veiculos']
-    cliente = df['Cliente'].value_counts().index
-    clientes = st.selectbox('Cliente', cliente)
-    df_cliente = df[df['Cliente'] == clientes]
+    placa = df['Placas'].value_counts().index
+    placas = st.selectbox('Placa', placa)
+    df_cliente = df[df['Placas'] == placas]
     col1,col2,col3,col4,col5 = st.columns(5)
-    doc = df_cliente['Documento'].value_counts().index[0]
-    col1.metric('Documento', doc)
-    num = df_cliente['N° Doc'].value_counts().index[0]
-    col2.metric('num', num, label_visibility="hidden")
-    tipo = df_cliente['Tipo'].value_counts().index[0]
-    col3.metric('Tipo', tipo)    
-    veic = df_cliente['Veículo'].value_counts().index[0]
-    col4.metric('Modelo', veic)
-    placa = df_cliente['Placas'].value_counts().index[0]
-    col4.metric('Placa', placa)
+    veiculo = df_cliente['Veículo'].value_counts().index[0]
+    col1.metric('Veículo', veiculo)
     cor = df_cliente['Cor'].value_counts().index[0]
-    col5.metric('Cor', cor)    
+    col2.metric('Cor', cor)
+    cliente = df_cliente['Cliente'].value_counts().index[0]
+    col3.metric('Cliente', cliente)
+    doc = df_cliente['Documento'].value_counts().index[0]
+    col4.metric('Documento', doc)
+    num = df_cliente['N° Doc'].value_counts().index[0]
+    col5.metric('num', num, label_visibility="hidden")
     ano = df_cliente['Ano'].value_counts().index[0]
-    col5.metric('Ano', ano)
+    col1.metric('Ano', ano)
+    tipo = df_cliente['Tipo'].value_counts().index[0]
+    col2.metric('Tipo', tipo)    
     forma_pgto = ['Dinheiro', 'Pix', 'Cartão Débito', 'Cartão Crédito']
-    pagou = col1.selectbox('Forma de pagamento', forma_pgto)
-    valor = col2.number_input('Valor', placeholder = 'Valor em R$')
-    confirma_pgto = col1.button('Confirmar pagamento')
-    
+    pagou = col4.selectbox('Forma de pagamento', forma_pgto)
+    valor = col5.number_input('Valor', placeholder = 'Valor em R$')
+    confirma_pgto = col4.button('Confirmar pagamento')
+
     if confirma_pgto:
-        data = str(datetime.now().date())
-        pgto = {'Cliente' : clientes,
+        dias = datetime.now().date()
+        dia = dias.day
+        mes = dias.month
+        ano = dias.year
+        pgto = {'Cliente' : cliente,
                 'Documento' : num,
-                'Data' : data,
-               'Forma Pagamento': pagou ,
+                'Dia' : dia,
+                'Mês' : mes,
+                'Ano' : ano,
+                'Veículo' : veiculo,
+                'Placas' : placas, 
+               'Forma Pagamento': pagou,
                'Valor' : valor,
                'Status' : 'Confirmado'}
         entry = [pgto]
         result = coll2.insert_many(entry)
 
-def visu():
+def visualizar_pagamentos():
     pagamentos = db.pagamentos.find({})
     pagamentosdf = []
     for item in pagamentos:
         pagamentosdf.append(item)
 
-    dfpgto = pd.DataFrame(pagamentosdf, columns= ['_id', 'Cliente','Documento','Data', 'Forma Pagamento', 'Valor', 'Status'])
+    dfpgto = pd.DataFrame(pagamentosdf, columns= ['_id', 'Cliente','Documento', 'Veículo', 'Placas', 'Forma Pagamento', 'Valor', 'Status', 'Dia', 'Mês', 'Ano'])
     dfpgto.drop(columns='_id', inplace=True)
     st.session_state['pagamentos'] = dfpgto
     dfpgto = st.session_state['pagamentos']
     dfveic = st.session_state['veiculos']
-    df_pagamento = pd.merge(dfveic, dfpgto, on="Cliente", how='outer')
-    df_pagamento.drop(columns= 'Documento_y', inplace=True)
+    df_pagamento = pd.merge(dfveic, dfpgto, on="Placas", how='outer')
+    padronizar_df(df_pagamento)
     st.session_state['df_pagamento'] = df_pagamento
     df = st.session_state['df_pagamento']
     st.dataframe(df)
+
+def padronizar_df(df):
+    df.drop(columns= ['Documento_y','Cliente_y','Veículo_y'], inplace=True)
+    df.rename(columns={'Documento_x' : 'Documento','Cliente_x' : 'Cliente', 'Veículo_x' : 'Veículo','Ano_x' : 'Ano Veic.', 'Ano_y':'Ano'}, inplace= True)
+    df['Status'] = df['Status'].fillna('Pendente')
+    #df['Status'].fillna('Pendente', inplace= True)
+    #df['Data'] = df['Data'].fillna('0000-00-00')
+    #df['Data'].fillna('0000-00-00', inplace= True)
+    df['Forma Pagamento'] = df['Forma Pagamento'].fillna('Nenhum')
+    #df['Forma Pagamento'].fillna('Nenhum', inplace= True)
+    df['Valor'] = df['Valor'].fillna(0)
+    #df['Valor'].fillna(0, inplace= True)
+    return df
+
+def supervisionar_pagamentos():
+    df = st.session_state['df_pagamento']
+    mes = {1: 'Janeiro', 2 :'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6 : 'Junho', 7 : 'Julho', 8 : 'Agosto', 9 : 'Setembro', 10 : 'Outubro', 11 : 'Novembro', 12 : 'Dezembro'}
+    df['Mês'] = df['Mês'].map(mes)
+    
+    col1,col2,col3,col4,col5 = st.columns(5)
+    ano = df['Ano'].value_counts().index
+    anos = col1.selectbox('Ano', ano)
+    df_ano = df[df['Ano'] == anos]
+    mes = df_ano['Mês'].value_counts().index
+    meses = col2.selectbox('Mês', mes)
+    df_mes = df_ano[df_ano['Mês'] == meses]
+    if meses not in mes:
+        pass
+    else:
+        df_mes_filtro = df_mes[['Cliente', 'Documento', 'N° Doc', 'Forma Pagamento', 'Valor', 'Dia', 'Veículo', 'Placas']]
+        df_mes_filtro = df_mes_filtro[df_mes_filtro['Valor'] > 0] 
+        st.dataframe(df_mes_filtro)
+    
+def status_pagamento():
+    df = st.session_state['df_pagamento']
+    col1,col2 = st.columns(2)
+    ano = df['Ano'].value_counts().index
+    anos = col1.selectbox('A', ano, label_visibility='hidden')
+    df_ano = df[df['Ano'] == anos]
+
+    mes = df_ano['Mês'].value_counts().index
+    meses = col2.selectbox('M', mes, label_visibility='hidden')
+    df_mes = df_ano[df_ano['Mês'] == meses]
+    df_status = df_mes[['Cliente', 'Veículo', 'Placas', 'Status']]
+
+    col1, col2 = st.columns(2)
+    df_status_ok = df_status[df_status['Status'] == 'Confirmado']
+    col1.header('**Pagamento Confirmado**')
+    col1.dataframe(df_status_ok[['Cliente', 'Veículo', 'Placas']])
+
+    df_status_nihil = df[~df['Placas'].isin(df_mes['Placas'])]
+    df_status_nihil = df_status_nihil[['Cliente', 'Veículo', 'Placas', 'Status']]
+    col2.header('**Pagamento Pendente**')
+    col2.dataframe(df_status_nihil[['Cliente', 'Veículo', 'Placas']])   
+
+def analise_operacional():
+    veiculos_cadastrados = st.session_state['veiculos_cadastrados']
+
 
 def pagina_principal():
     st.title('Suprema Sat 🌎')
@@ -135,7 +213,17 @@ def pagina_principal():
 
     st.divider()
     st.header('**Visulizando pagamentos**')
-    visu()
+    visualizar_pagamentos()
+
+    st.divider()
+    st.header('**Pagamentos**')
+    supervisionar_pagamentos()
+    st.divider()
+    status_pagamento()
+
+    st.divider()
+    st.header('**Análise geral**')
+    analise_operacional()    
 
 def main():
     pagina_principal()
