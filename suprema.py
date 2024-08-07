@@ -15,6 +15,23 @@ st.set_page_config(
             page_title = 'Suprema Sat 🌎',
         )
 
+file_path = Path(__file__).parent/"db"/"hashed_pw.pkl"
+
+with file_path.open("rb") as file:
+  hashed_passwords = pickle.load(file)
+  
+credentials = {
+    "usernames": {
+        "admin": {
+            "name": "Admin",
+            "password": hashed_passwords[0]
+        }
+    }
+}
+
+authenticator = stauth.Authenticate(credentials= credentials, cookie_name="st_session", cookie_key="key123", cookie_expiry_days= 1)
+authenticator.login()
+
 mongo_user = st.secrets['MONGO_USER']
 mongo_pass = st.secrets["MONGO_PASS"]
 
@@ -48,6 +65,10 @@ def cadastrar_veiculos():
         doc3 = col5.text_input('2', placeholder='Ex: 000',label_visibility= 'hidden')
         doc4 = col6.text_input('3', placeholder='Ex: 00',label_visibility= 'hidden')
         doc = f'{doc1}.{doc2}.{doc3}-{doc4}'
+    tele = col1.text_input('DDD', placeholder='Ex: 16')
+    fo = col2.text_input('Telefone', placeholder= 'Ex: 99999')
+    ne = col3.text_input('fone', placeholder= 'Ex: 0000', label_visibility='hidden')
+    telefone = f'({tele}){fo}-{ne}'
         
     adiciona_cliente = col1.button('Adicionar')
     placa = f'{placa_lt} - {placa_nb}'
@@ -58,7 +79,8 @@ def cadastrar_veiculos():
                'Placas': placa,
                'Cor' : cor,
                'Ano' : ano,
-               'Tipo' : tipo}
+               'Tipo' : tipo,
+               'Telefone' : telefone}
     
     if adiciona_cliente:
         entry = [veiculo]
@@ -72,16 +94,16 @@ def visualizar_veiculos():
     for item in clientes:
         clientesdf.append(item)
 
-    df = pd.DataFrame(clientesdf, columns= ['_id', 'Cliente','Documento','N° Doc', 'Veículo', 'Placas', 'Cor', 'Ano', 'Tipo'])
+    df = pd.DataFrame(clientesdf, columns= ['_id', 'Cliente','Documento','N° Doc', 'Veículo', 'Placas', 'Cor', 'Ano', 'Tipo', 'Telefone'])
     df.drop(columns='_id', inplace=True)
     st.session_state['veiculos'] = df
-    df = st.session_state['veiculos']
-    
-    st.dataframe(df)
-    veiculos_cadastrados = df['Placas'].value_counts().sum()
-    st.session_state['veiculos_cadastrados'] = veiculos_cadastrados
-    clientes_cadastrados = df['Cliente'].nunique()
-    st.session_state['clientes_cadastrados'] = clientes_cadastrados
+    #    df = st.session_state['veiculos']
+    #    
+    #    st.dataframe(df)
+    #    veiculos_cadastrados = df['Placas'].value_counts().sum()
+    #    st.session_state['veiculos_cadastrados'] = veiculos_cadastrados
+    #    clientes_cadastrados = df['Cliente'].nunique()
+    #    st.session_state['clientes_cadastrados'] = clientes_cadastrados
 
 def pagamento_veiculos():
     df = st.session_state['veiculos']
@@ -102,7 +124,8 @@ def pagamento_veiculos():
     ano = df_cliente['Ano'].value_counts().index[0]
     col1.metric('Ano', ano)
     tipo = df_cliente['Tipo'].value_counts().index[0]
-    col2.metric('Tipo', tipo)    
+    col2.metric('Tipo', tipo)
+    col3.metric('Tel', df_cliente['Telefone'].value_counts().index[0])    
     forma_pgto = ['Dinheiro', 'Pix', 'Cartão Débito', 'Cartão Crédito']
     pagou = col4.selectbox('Forma de pagamento', forma_pgto)
     valor = col5.number_input('Valor', placeholder = 'Valor em R$')
@@ -141,7 +164,7 @@ def visualizar_pagamentos():
     padronizar_df(df_pagamento)
     st.session_state['df_pagamento'] = df_pagamento
     df = st.session_state['df_pagamento']
-    st.dataframe(df)
+    #st.dataframe(df)
 
 def padronizar_df(df):
     df.drop(columns= ['Documento_y','Cliente_y','Veículo_y'], inplace=True)
@@ -161,19 +184,19 @@ def supervisionar_pagamentos():
     mes = {1: 'Janeiro', 2 :'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6 : 'Junho', 7 : 'Julho', 8 : 'Agosto', 9 : 'Setembro', 10 : 'Outubro', 11 : 'Novembro', 12 : 'Dezembro'}
     df['Mês'] = df['Mês'].map(mes)
     
-    col1,col2,col3,col4,col5 = st.columns(5)
-    ano = df['Ano'].value_counts().index
-    anos = col1.selectbox('Ano', ano)
-    df_ano = df[df['Ano'] == anos]
-    mes = df_ano['Mês'].value_counts().index
-    meses = col2.selectbox('Mês', mes)
-    df_mes = df_ano[df_ano['Mês'] == meses]
-    if meses not in mes:
-        pass
-    else:
-        df_mes_filtro = df_mes[['Cliente', 'Documento', 'N° Doc', 'Forma Pagamento', 'Valor', 'Dia', 'Veículo', 'Placas']]
-        df_mes_filtro = df_mes_filtro[df_mes_filtro['Valor'] > 0] 
-        st.dataframe(df_mes_filtro)
+    #col1,col2,col3,col4,col5 = st.columns(5)
+    #ano = df['Ano'].value_counts().index
+    #anos = col1.selectbox('Ano', ano)
+    #df_ano = df[df['Ano'] == anos]
+    #mes = df_ano['Mês'].value_counts().index
+    #meses = col2.selectbox('Mês', mes)
+    #df_mes = df_ano[df_ano['Mês'] == meses]
+    #if meses not in mes:
+    #    pass
+    #else:
+    #    df_mes_filtro = df_mes[['Cliente', 'Documento', 'N° Doc', 'Forma Pagamento', 'Valor', 'Dia', 'Veículo', 'Placas']]
+    #    df_mes_filtro = df_mes_filtro[df_mes_filtro['Valor'] > 0] 
+        #st.dataframe(df_mes_filtro)
     
 def status_pagamento():
     df = st.session_state['df_pagamento']
@@ -201,11 +224,12 @@ def status_pagamento():
     col2.dataframe(df_status_nihil[['Cliente', 'Veículo', 'Placas']])   
 
 def analise_operacional():
-    veiculos_cadastrados = st.session_state['veiculos_cadastrados']
-    clientes_cadastrados = st.session_state['clientes_cadastrados']
+    df = st.session_state['veiculos']
+    veiculos_cadastrados = df['Placas'].value_counts().sum()
+    
+    clientes_cadastrados = df['Cliente'].nunique()
+
     df_pgto = st.session_state['df_pagamento']
-    df_status_nihil = st.session_state['df_status_nihil']
-    df_status_ok = st.session_state['df_status_ok']
 
     forma_pagamento = df_pgto['Forma Pagamento'].value_counts().index[0]
     tipo = df_pgto['Tipo'].value_counts().index[0]
@@ -218,11 +242,11 @@ def analise_operacional():
     col4.metric('Forma de pagamento mais utilizada', forma_pagamento)
 
     ano = df_pgto['Ano'].value_counts().index
-    anos = col1.selectbox('Year', ano)
+    anos = col1.selectbox('Ano', ano)
     df_pgto_ano = df_pgto[df_pgto['Ano'] == anos]
     
     mes = df_pgto_ano['Mês'].value_counts().index
-    meses = col2.selectbox('month', mes)
+    meses = col2.selectbox('Mês', mes)
 
     df_pgto_mes = df_pgto_ano[df_pgto_ano['Mês'] == meses]
     df_status = df_pgto_mes[['Cliente', 'Veículo', 'Placas', 'Status']]
@@ -232,45 +256,59 @@ def analise_operacional():
     df_status_nihil = df_status_nihil[['Cliente', 'Veículo', 'Placas']]
 
     soma_pagamento = df_pgto_mes['Valor'].sum()
-    col1.metric('Receita mês:', f'{soma_pagamento:,2f}')
+    col1.metric('Receita mês:', f'R$ {soma_pagamento:,.2f}')
     veiculos_confirmados = df_status_ok['Placas'].value_counts().sum()
     col2.metric('Pagamentos confirmados:', veiculos_confirmados)
+    col3.divider()
     veiculos_pendentes = df_status_nihil['Placas'].value_counts().sum()
-    col2.metric('Pagamentos pendentes:', veiculos_pendentes)
+    col3.metric('Pagamentos pendentes:', veiculos_pendentes)
+    col4.divider()
     
-
-
 def pagina_principal():
-    st.title('Suprema Sat 🌎')
-    #tab1,tab2,tab3 = st.tabs(['Análise', 'Clientes','Pagamentos'])
-    #with tab1:
-    #    st.header('**Análise geral**')
-    #    analise_operacional() 
-
-    cadastrar_veiculos()
     visualizar_veiculos()
-    
-    st.divider()
-
-    st.header('**Pagamento**')
-    pagamento_veiculos()
-
-    st.divider()
-    st.header('**Visulizando pagamentos**')
     visualizar_pagamentos()
-
-    st.divider()
-    st.header('**Pagamentos**')
     supervisionar_pagamentos()
-    st.divider()
-    status_pagamento()
+    st.title('Suprema Sat 🌎')
+    tab1,tab2,tab3 = st.tabs(['Análise', 'Clientes','Pagamentos'])
+    with tab1:
+        st.header('**Análise geral**')
+        analise_operacional()
+        
+    with tab2:
+        st.header('**Cadastro de Clientes**')
+        cadastrar_veiculos()
+        df = st.session_state['veiculos']
+        st.dataframe(df)
+    
+    with tab3:
+        st.header('**Pagamento**')
+        pagamento_veiculos()
+        st.divider()
+        status_pagamento()
+        
 
-    st.divider()
-    st.header('**Análise geral**')
-    analise_operacional()    
+    #st.divider()
+    #st.header('**Visulizando pagamentos**')
+    #visualizar_pagamentos()
+
+    #st.divider()
+    #st.header('**Pagamentos**')
+    #supervisionar_pagamentos()
+    #st.divider()
+    #status_pagamento()
+
+    #st.divider()
+    #st.header('**Análise geral**')
+    #analise_operacional()    
 
 def main():
-    pagina_principal()
+    if st.session_state["authentication_status"]:
+        pagina_principal()
+    elif st.session_state["authentication_status"] == False:
+        st.error("Username/password is incorrect.")
+
+    elif st.session_state["authentication_status"] == None:
+        st.warning("Please insert username and password")
 
 if __name__ == '__main__':
     main()
