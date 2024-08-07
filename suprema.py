@@ -269,6 +269,9 @@ def pagina_principal():
     visualizar_pagamentos()
     supervisionar_pagamentos()
     st.title('Suprema Sat 🌎')
+    btn = authenticator.logout()
+    if btn:
+        st.session_state["authentication_status"] == None
     tab1,tab2,tab3 = st.tabs(['Análise', 'Clientes','Pagamentos'])
     with tab1:
         st.header('**Análise geral**')
