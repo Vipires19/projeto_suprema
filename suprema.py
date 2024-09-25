@@ -268,7 +268,7 @@ def pagina_principal():
     visualizar_veiculos()
     visualizar_pagamentos()
     supervisionar_pagamentos()
-    st.title('Suprema Sat 🌎')
+    st.title('Sat 🌎')
     btn = authenticator.logout()
     if btn:
         st.session_state["authentication_status"] == None
