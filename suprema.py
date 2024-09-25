@@ -12,7 +12,7 @@ from datetime import datetime
 
 st.set_page_config(
             layout =  'wide',
-            page_title = 'Suprema Sat 🌎',
+            page_title = 'Sat 🌎',
         )
 
 file_path = Path(__file__).parent/"db"/"hashed_pw.pkl"
